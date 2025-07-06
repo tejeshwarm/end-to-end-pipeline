@@ -14,15 +14,15 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Build Docker Image
-      run: docker build -t yourdockerhubusername/myflaskapp .
+      run: docker build -t tejeshwarofficial/myflaskapp .
 
     - name: Docker Login
       run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
     - name: Push Docker Image
       run: |
-        docker tag yourdockerhubusername/myflaskapp yourdockerhubusername/myflaskapp:latest
-        docker push yourdockerhubusername/myflaskapp:latest
+        docker tag tejeshwarofficial/myflaskapp tejeshwarofficial/myflaskapp:latest
+        docker push tejeshwarofficial/myflaskapp:latest
 
     - name: Deploy with Terraform
       run: |
