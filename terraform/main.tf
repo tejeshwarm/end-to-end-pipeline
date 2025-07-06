@@ -1,47 +1,59 @@
-name: Deploy Flask App to AWS with Terraform
+provider "aws" {
+  region = "us-east-1"
+}
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+# ✅ Get latest Ubuntu 20.04 AMI from Canonical
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"]
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
 
-    steps:
-      # Step 1: Checkout repo
-      - name: Checkout code
-        uses: actions/checkout@v3
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
 
-      # Step 2: Set up Terraform
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.7
+# ✅ Create a Security Group allowing port 80 (HTTP)
+resource "aws_security_group" "allow_http" {
+  name        = "allow_http"
+  description = "Allow inbound HTTP traffic"
 
-      # Step 3: Docker Login
-      - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-      # Step 4: Build & Push Docker Image
-      - name: Build and push Docker image
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-app:latest .
-          docker push ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 
-      # Step 5: Run Terraform from terraform/ directory
-      - name: Deploy Infrastructure with Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.7
+# ✅ Create EC2 Instance
+resource "aws_instance" "web" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t2.micro"
+  key_name               = "cat" # Replace with your actual AWS EC2 Key Pair name
+  vpc_security_group_ids = [aws_security_group.allow_http.id]
 
-      - name: Terraform Init and Apply
-        working-directory: terraform
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          terraform init
-          terraform apply -auto-approve
+  user_data = <<-EOF
+              #!/bin/bash
+              apt update -y
+              apt install docker.io -y
+              systemctl start docker
+              docker run -d -p 80:5000 ${DOCKER_USERNAME}/flask-app:latest
+              EOF
+
+  tags = {
+    Name = "flask-app-instance"
+  }
+}
