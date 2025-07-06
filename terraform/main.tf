@@ -18,7 +18,7 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# ✅ Allow inbound HTTP traffic (port 80)
+#  Allow inbound HTTP traffic (port 80)
 resource "aws_security_group" "allow_http" {
   name        = "flask_http_sg"
   description = "Allow inbound HTTP traffic"
