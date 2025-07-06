@@ -50,7 +50,7 @@ resource "aws_instance" "web" {
               apt update -y
               apt install docker.io -y
               systemctl start docker
-              docker run -d -p 80:5000 yourdockerhubusername/flask-app:latest
+              docker run -d -p 80:5000 tejeshwarofficial/flask-app:latest
               EOF
 
   tags = {
