@@ -21,7 +21,7 @@ data "aws_ami" "ubuntu" {
 resource "aws_instance" "web" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
-  key_name      = "your-key-name"  # replace with your AWS key pair
+  key_name      = "cat"  # replace with your AWS key pair
 
   user_data = <<-EOF
               #!/bin/bash
