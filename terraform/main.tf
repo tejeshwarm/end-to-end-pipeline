@@ -1,11 +1,11 @@
 provider "aws" {
-  region = "us-east-1"
+  region = "ap-southeast-2" # 
 }
 
-# ✅ Get latest Ubuntu 20.04 AMI from Canonical
+# ✅ Get latest Ubuntu 20.04 AMI
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"]
+  owners      = ["099720109477"] # Canonical
 
   filter {
     name   = "name"
@@ -18,7 +18,7 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# ✅ Create a Security Group allowing port 80 (HTTP)
+# ✅ Allow inbound HTTP traffic (port 80)
 resource "aws_security_group" "allow_http" {
   name        = "allow_http"
   description = "Allow inbound HTTP traffic"
@@ -38,11 +38,11 @@ resource "aws_security_group" "allow_http" {
   }
 }
 
-# ✅ Create EC2 Instance
+# ✅ Create EC2 instance in Sydney
 resource "aws_instance" "web" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "t2.micro"
-  key_name               = "cat" # Replace with your actual AWS EC2 Key Pair name
+  key_name               = "cat" 
   vpc_security_group_ids = [aws_security_group.allow_http.id]
 
   user_data = <<-EOF
@@ -50,7 +50,7 @@ resource "aws_instance" "web" {
               apt update -y
               apt install docker.io -y
               systemctl start docker
-              docker run -d -p 80:5000 tejeshwarofficial/flask-app:latest
+              docker run -d -p 80:5000 yourdockerhubusername/flask-app:latest
               EOF
 
   tags = {
