@@ -1,37 +1,42 @@
-provider "aws" {
-  region = "us-east-1"
-}
+name: Deploy Flask App to AWS with Terraform
 
-#  DYNAMIC AMI FETCHING FOR UBUNTU
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
+    steps:
+      # Step 1: Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-resource "aws_instance" "web" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t2.micro"
-  key_name      = "cat"  # replace with your AWS key pair
+      # Step 2: Set up Terraform (🔧 MISSING in your run!)
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.7
 
-  user_data = <<-EOF
-              #!/bin/bash
-              apt update -y
-              apt install docker.io -y
-              systemctl start docker
-              docker run -d -p 80:5000 yourdockerhubusername/myflaskapp:latest
-              EOF
+      # Step 3: Login to Docker Hub
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-  tags = {
-    Name = "flask-app-instance"
-  }
-}
+      # Step 4: Build and push Docker image
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-app:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
+
+      # Step 5: Deploy with Terraform
+      - name: Deploy Infrastructure with Terraform
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          terraform init
+          terraform apply -auto-approve
