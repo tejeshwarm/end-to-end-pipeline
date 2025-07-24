@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "ap-southeast-2" # 
+  region = "ap-southeast-2"
 }
 
 # Get latest Ubuntu 20.04 AMI
@@ -18,14 +18,14 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-#  Allow inbound HTTP traffic (port 80)
-resource "aws_security_group" "allow_http" {
-  name        = "flask_http_sg"
-  description = "Allow inbound HTTP traffic"
+# 🔥 Allow inbound traffic on port 5000
+resource "aws_security_group" "allow_flask" {
+  name        = "flask_5000_sg"
+  description = "Allow inbound Flask traffic on port 5000"
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 5000
+    to_port     = 5000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -38,19 +38,19 @@ resource "aws_security_group" "allow_http" {
   }
 }
 
-# ✅ Create EC2 instance in Sydney
+# ✅ Create EC2 instance
 resource "aws_instance" "web" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "t2.micro"
-  key_name               = "cat" 
-  vpc_security_group_ids = [aws_security_group.allow_http.id]
+  key_name               = "cat"
+  vpc_security_group_ids = [aws_security_group.allow_flask.id]
 
   user_data = <<-EOF
               #!/bin/bash
               apt update -y
               apt install docker.io -y
               systemctl start docker
-              docker run -d -p 80:5000 tejeshwarofficial/flask-app:latest
+              docker run -d -p 5000:5000 tejeshwarofficial/flask-app:latest
               EOF
 
   tags = {
